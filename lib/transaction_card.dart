@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 
 class TransactionCard extends StatelessWidget {
-  final String id;
-  final String title;
+  final String sender;
+  final String receiver;
   final double amount;
-  final DateTime date;
+  final String date;
 
   const TransactionCard({
     Key? key,
-    required this.id,
-    required this.title,
     required this.amount,
+    required this.receiver,
+    required this.sender,
     required this.date,
   }) : super(key: key);
 
@@ -29,8 +29,8 @@ class TransactionCard extends StatelessWidget {
               color: Colors.red,
             ),
             Column(
-              children: const [
-                Text('Transaction'),
+              children:[
+                Text(date),
               ],
             ),
           ],

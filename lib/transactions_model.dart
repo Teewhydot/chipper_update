@@ -1,18 +1,14 @@
 
 class Transaction {
-  final String id;
-  final String title;
+  final String receiver;
+  final String sender;
   final double amount;
-  final DateTime date;
+  final String date;
 
   Transaction({
-    required this.id,
-    required this.title,
+    required this.sender,
+    required this.receiver,
     required this.amount,
     required this.date,
   });
-}
-
-class Trx {
-
 }

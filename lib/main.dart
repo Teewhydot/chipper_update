@@ -1,8 +1,7 @@
-import 'dart:convert';
+// ignore_for_file: prefer_typing_uninitialized_variables
 
+import 'dart:convert';
 import 'package:chipper_update/constants.dart';
-import 'package:chipper_update/transaction_card.dart';
-import 'package:chipper_update/transactions_model.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,63 +31,94 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   late Future chipperFuture;
-  String apiKey = 'ckey_b1471e9db28b45e1bc29b690784';
+  String covalentApiKey = 'ckey_b1471e9db28b45e1bc29b690784';
+  String ethplorerApiKey = 'EK-tu6gX-nQYCG5d-swLNy';
   String ethAddress = '0xeA3d9B4743e20CE41777149A16e4eC97185d1487';
-  List<Transaction> transactionList = [];
+  String ethplorerUrl =
+      'https://api.ethplorer.io/getAddressInfo/0xeA3d9B4743e20CE41777149A16e4eC97185d1487?apiKey=EK-tu6gX-nQYCG5d-swLNy';
+  String covalentUrl =
+      'https://api.covalenthq.com/v1/1/address/0xeA3d9B4743e20CE41777149A16e4eC97185d1487/transactions_v2/?quote-currency=USD&format=JSON&block-signed-at-asc=false&no-logs=false&page-size=10000&key=ckey_b1471e9db28b45e1bc29b690784';
+  var ethBalance;
+  var usdcBalance;
+  var usdtBalance;
 
-  Future getTransactions() async {
-    // var headers = {
-    //   'Authorization': 'Basic Y2tleV9iMTQ3MWU5ZGIyOGI0NWUxYmMyOWI2OTA3ODQ6'
-    // };
-    // var request = http.Request(
-    //     'GET',
-    //     Uri.parse(
-    //         'https://api.covalenthq.com/v1/1/address/$ethAddress/transactions_v2/?quote-currency=USD&format=JSON&block-signed-at-asc=true&no-logs=true&page-size=1200&key=$apiKey')
-    //     //
-    //     // Uri.parse(
-    //     //     'https://api.covalenthq.com/v1/1/address/$ethAddress/transactions_v2/')
-    //     //
-    //     );
-    // request.headers.addAll(headers);
-    // http.StreamedResponse response = await request.send();
-    // if (response.statusCode == 200) {
-    //   var responseString = await response.stream.bytesToString();
-    //   final decodedResult = jsonDecode(responseString);
-    //   var items = decodedResult['data']['items'];
-    //   print('All items in the items list are $items');
-    //   print(transactionList);
-    //   print(await response.stream.bytesToString());
-    // } else {
-    //   print(response.reasonPhrase);
-    // }
+  List<String> dates = [];
+  List<String> transactionsToday = [];
+  List<String> transactionsYesterday = [];
+  List<String> transactionsTwoDaysAgo = [];
+  List<String> transactionsThreeDaysAgo = [];
+  List<String> transactionsFourDaysAgo = [];
+  List<String> transactionsFiveDaysAgo = [];
+  final twoDaysAgoDate = DateTime.now().subtract(const Duration(days: 2)).toString();
+  final threeDaysAgoDate = DateTime.now().subtract(const Duration(days: 3)).toString();
+  final fourDaysAgoDate = DateTime.now().subtract(const Duration(days: 4)).toString();
+  final fiveDaysAgoDate = DateTime.now().subtract(const Duration(days: 5)).toString();
 
 
-    http.Response response1 = await http.get(Uri.parse('https://api.covalenthq.com/v1/1/address/$ethAddress/transactions_v2/?quote-currency=USD&format=JSON&block-signed-at-asc=true&no-logs=true&page-size=1200&key=$apiKey'));
-    if (response1.statusCode == 200) {
-      var response = await jsonDecode(response1.body);
-      var listOfPlayLists = response['data']['items'];
-      for (var data in listOfPlayLists) {
+  final yesterdayDate =
+      DateTime.now().subtract(const Duration(days: 1)).day.toString();
+  final todayDate = DateTime.now().day;
+
+  Future getTransactionFromCovalent() async {
+    try {
+      http.Response response1 = await http.get(Uri.parse(covalentUrl));
+      if (response1.statusCode == 200) {
+       await getBalancesFromEthplorer();
+        var response = await jsonDecode(response1.body);
+        var listOfTransactions = response['data']['items'];
+        for (var data in listOfTransactions) {
+          var date = data['block_signed_at'];
+          var todayDateFromResponse = date.substring(8, 10);
+          if (todayDateFromResponse.toString() == todayDate.toString()) {
+            transactionsToday.add(todayDateFromResponse);
+          }
+
+          if (todayDateFromResponse.toString() == yesterdayDate) {
+            transactionsYesterday.add(todayDateFromResponse);
+          }
+          if (todayDateFromResponse.toString() == twoDaysAgoDate){
+            transactionsTwoDaysAgo.add(todayDateFromResponse);
+          }
+          if (todayDateFromResponse.toString() == threeDaysAgoDate){
+            transactionsThreeDaysAgo.add(todayDateFromResponse);
+          }
+          if (todayDateFromResponse.toString() == fourDaysAgoDate){
+            transactionsFourDaysAgo.add(todayDateFromResponse);
+          }
+          if (todayDateFromResponse.toString() == fiveDaysAgoDate){
+            transactionsFiveDaysAgo.add(todayDateFromResponse);
+          }
+        }
       }
-      print(listOfPlayLists);
-    } else {}
+
+    } catch (e) {
+      throw Exception('Error');
+    }
   }
+  Future getBalancesFromEthplorer()async {
+    try {
+      http.Response response1 = await http.get(Uri.parse(ethplorerUrl));
+      if (response1.statusCode == 200) {
+        var response = await jsonDecode(response1.body);
+      //  var listOfTransactions = response['transactions'];
+         ethBalance = response['ETH']['balance'];
+         usdcBalance = response['tokens'][0]['balance'];
+         usdtBalance = response['tokens'][2]['balance'];
+      }
+    } catch (e) {
+      throw Exception('Error');
+    }
 
-
+  }
   @override
   void initState() {
-    chipperFuture = getTransactions();
+    chipperFuture = getTransactionFromCovalent();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await getTransactions();
-        },
-        child: const Icon(Icons.add),
-      ),
       appBar: AppBar(
         title: const Text('Chipper'),
         centerTitle: true,
@@ -104,7 +134,7 @@ class _HomeState extends State<Home> {
             if (snapshot.hasError) {
               return const Center(
                   child: Text(
-                'Something went wrong',
+                'Problem dey',
                 style: mediumBlackTextStyle,
               ));
             }
@@ -120,17 +150,196 @@ class _HomeState extends State<Home> {
                 ),
               );
             }
-            return ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              itemCount: transactionList.length,
-              itemBuilder: (context, index) {
-                return TransactionCard(
-                  id: transactionList[index].id,
-                  title: transactionList[index].title,
-                  amount: transactionList[index].amount,
-                  date: transactionList[index].date,
-                );
-              },
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Card showing the number of transactions today
+                Container(
+                  height: 300,
+                  margin: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 5,
+                        blurRadius: 7,
+                        offset:
+                            const Offset(0, 3), // changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transactions Today',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            transactionsToday.length.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transactions Yesterday',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            transactionsYesterday.length.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transactions 2 Days Ago',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            transactionsTwoDaysAgo.length.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transactions 3 Days Ago',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            transactionsThreeDaysAgo.length.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transactions 4 Days Ago',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            transactionsFourDaysAgo.length.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transactions 5 Days Ago',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            transactionsFiveDaysAgo.length.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Card showing balance of ETH
+                Container(
+                  height: 150,
+                  margin: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 5,
+                        blurRadius: 7,
+                        offset:
+                            const Offset(0, 3), // changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'ETH Balance',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            ethBalance.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'USDC Balance',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            usdcBalance.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                      const Divider(
+                        color: Colors.black,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'USDT Balance',
+                            style: mediumBlackTextStyle,
+                          ),
+                          Text(
+                            usdtBalance.toString(),
+                            style: mediumBlackTextStyle,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
           }),
     );
